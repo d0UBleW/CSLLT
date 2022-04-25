@@ -16,9 +16,6 @@ main proc
     lea dx, buf
     int 21h
 
-    ; mov ah, 01h
-    ; int 21h
-
     lea si, buf[2]
 
     ; cmp buf[2], '9'
@@ -30,8 +27,10 @@ main proc
     cmp al, '0'
     jl EXIT
 
-    mov al, '0'
-    sub [si], al
+    ; sub buf[2], '0'
+    sub al, '0'
+    lea di, buf[2]
+    mov [di], al
     jmp INIT
 
 EXIT:
@@ -53,8 +52,9 @@ INIT:
 LOOP1:
     ; get the number of spaces to be displayed
     ; by subtracting input with current row
-    lea di, buf[2]
-    mov al, [di]
+    ; bl = buf[2] - ch
+    lea si, buf[2]
+    mov al, [si]
     sub al, ch
     mov bl, al
 
@@ -74,8 +74,9 @@ LOOP3:
     mov ah, 02h
     int 21h
 
-    lea di, back
-    mov al, [di]
+    ; cmp back, 01h
+    lea si, back
+    mov al, [si]
     cmp al, 01h
     je LOOP4
 
@@ -83,6 +84,8 @@ LOOP3:
     cmp cl, ch
     jle LOOP3
 
+    ; mov back, 01h
+    lea di, back
     mov al, 01h
     mov [di], al
     dec cl
@@ -93,6 +96,9 @@ LOOP4:
     jge LOOP3
 
     mov cl, 00h
+
+    ; mov back, 00h
+    lea di, back
     mov al, 00h
     mov [di], al
 
@@ -104,18 +110,22 @@ LINE:
     mov dl, 0ah
     int 21h
 
-    lea di, rev
-    mov al, [di]
+    ; cmp rev, 01h
+    lea si, rev
+    mov al, [si]
     cmp al, 01h
     je REVERSE
 
     inc ch
+    ; cmp ch, buf[2]
     lea si, buf[2]
     mov al, [si]
     cmp ch, al
     jle LOOP1
 
     ; set rev to 1 after completing the upper side
+    ; mov rev, 01h
+    lea di, rev
     mov al, 01h
     mov [di], al
     dec ch
@@ -130,4 +140,3 @@ REVERSE:
 
 main endp
 end main
-
