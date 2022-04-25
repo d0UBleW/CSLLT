@@ -42,13 +42,21 @@ LOOP1:
     int 21h
     mov dl, 20h
     int 21h
-    cmp back, 01h
+
+    ; cmp back, 01h
+    lea di, back
+    mov al, 01h
+    cmp [di], al
+
     je LOOP3
     inc cl
     cmp cl, ch
     jl LOOP1
 
-    mov back, 01h
+    ; mov back, 01h
+    lea di, back
+    mov al, 01h
+    mov [di], al
 
     ; bh = 2 * (len(input) - i-th row)
     xor ax, ax
@@ -74,7 +82,11 @@ LOOP3:
     cmp cl, 00h
     jge LOOP1
 
-    mov back, 00h
+    ; mov back, 00h
+    lea di, back
+    mov al, 00h
+    mov [di], al
+
     mov cl, 00h
 
     mov dl, 0dh
@@ -82,13 +94,18 @@ LOOP3:
     mov dl, 0ah
     int 21h
 
-    cmp rev, 01h
+    lea di, rev
+    mov al, 01h
+    cmp [di], al
     je REVERSE
     inc ch
     cmp ch, bl
     jle LOOP1
 
-    mov rev, 01h
+    ; mov rev, 01h
+    lea di, rev
+    mov al, 01h
+    mov [di], al
 
 REVERSE:
     dec ch

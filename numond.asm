@@ -1,27 +1,47 @@
 .model small
 .stack 100h
 .data
-    count db 0
-    num db '0'
+    back db 0
     rev db 0
+    buf db 02h
+        db ?
+        db 02h dup(0)
+
 .code
 main proc
     mov ax, @data
     mov ds, ax
-    mov ah, 01h
+
+    mov ah, 0ah
+    lea dx, buf
     int 21h
-    cmp al, '0'
-    jl EXIT
-    cmp al, '9'
+
+    ; mov ah, 01h
+    ; int 21h
+
+    lea si, buf[2]
+
+    ; cmp buf[2], '9'
+    mov al, '9'
+    cmp [si], al
     jg EXIT
-    sub al, '0'
+
+    ; cmp buf[2], '0'
+    mov al, '0'
+    cmp [si], al
+    jl EXIT
+
+    sub [si], al
     jmp INIT
+
 EXIT:
     mov ah, 4ch
     int 21h
+
 INIT:
-    mov count, al
     mov cl, 00h
+    mov ch, 00h
+
     ; print CRLF
     mov dl, 0dh
     mov ah, 02h
@@ -31,15 +51,12 @@ INIT:
     int 21h
 
 LOOP1:
-    ; reset char to be displayed to '0'
-    mov al, '0'
-    mov num, al
     ; get the number of spaces to be displayed
     ; by subtracting input with current row
-    mov al, count
-    sub al, cl
+    lea di, buf[2]
+    mov al, [di]
+    sub al, ch
     mov bl, al
-    sub bl, 01h
 
 LOOP2:
     ; print spaces
@@ -48,31 +65,35 @@ LOOP2:
     mov dl, 20h
     mov ah, 02h
     int 21h
-    sub bl, 01h
+    dec bl
     jmp LOOP2
 
 LOOP3:
-    ; print num char increasingly until num is equal to current row
-    mov dl, num
+    mov dl, cl
+    add dl, '0'
     mov ah, 02h
     int 21h
-    add num, 01h
-    mov al, cl
-    add al, '0'
-    cmp num, al
+
+    lea di, back
+    mov al, 01h
+    cmp [di], al
+    je LOOP4
+
+    inc cl
+    cmp cl, ch
     jle LOOP3
-    sub num, 01h
+
+    mov [di], al
+    dec cl
 
 LOOP4:
-    ; print num char decreasingly until num is equal to '0'
-    sub num, 01h
-    mov al, num
-    cmp al, '0'
-    jl LINE
-    mov dl, num
-    mov ah, 02h
-    int 21h
-    jmp LOOP4
+    dec cl
+    cmp cl, 00h
+    jge LOOP3
+
+    mov cl, 00h
+    mov al, 00h
+    mov [di], al
 
 LINE:
     ; print CRLF
@@ -82,19 +103,23 @@ LINE:
     mov dl, 0ah
     int 21h
 
-    cmp rev, 01h
+    lea di, rev
+    mov al, 01h
+    cmp [di], al
     je REVERSE
-    add cl, 01h
-    cmp cl, count
-    jl LOOP1
+
+    inc ch
+    lea si, buf[2]
+    cmp ch, [si]
+    jle LOOP1
 
     ; set rev to 1 after completing the upper side
-    mov rev, 01h
-    sub cl, 01h
+    mov [di], al
+    dec ch
 
 REVERSE:
-    sub cl, 01h
-    cmp cl, 00h
+    dec ch
+    cmp ch, 00h
     jge LOOP1
 
     mov ah, 4ch
