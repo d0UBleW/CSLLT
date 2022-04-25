@@ -95,8 +95,8 @@ LOOP3:
     int 21h
 
     lea di, rev
-    mov al, 01h
-    cmp [di], al
+    mov al, [di]
+    cmp al, 01h
     je REVERSE
     inc ch
     cmp ch, bl

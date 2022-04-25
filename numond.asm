@@ -22,15 +22,15 @@ main proc
     lea si, buf[2]
 
     ; cmp buf[2], '9'
-    mov al, '9'
-    cmp [si], al
+    mov al, [si]
+    cmp al, '9'
     jg EXIT
 
     ; cmp buf[2], '0'
-    mov al, '0'
-    cmp [si], al
+    cmp al, '0'
     jl EXIT
 
+    mov al, '0'
     sub [si], al
     jmp INIT
 
@@ -75,14 +75,15 @@ LOOP3:
     int 21h
 
     lea di, back
-    mov al, 01h
-    cmp [di], al
+    mov al, [di]
+    cmp al, 01h
     je LOOP4
 
     inc cl
     cmp cl, ch
     jle LOOP3
 
+    mov al, 01h
     mov [di], al
     dec cl
 
@@ -104,16 +105,18 @@ LINE:
     int 21h
 
     lea di, rev
-    mov al, 01h
-    cmp [di], al
+    mov al, [di]
+    cmp al, 01h
     je REVERSE
 
     inc ch
     lea si, buf[2]
-    cmp ch, [si]
+    mov al, [si]
+    cmp ch, al
     jle LOOP1
 
     ; set rev to 1 after completing the upper side
+    mov al, 01h
     mov [di], al
     dec ch
 
@@ -127,3 +130,4 @@ REVERSE:
 
 main endp
 end main
+
