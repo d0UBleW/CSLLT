@@ -16,6 +16,9 @@
     title1 db "Number Patterns", 0dh, 0ah
            db "===============", 0dh, 0ah, "$"
 
+    title3 db "Box Patterns", 0dh, 0ah
+           db "============", 0dh, 0ah, "$"
+
     errMsg db "Invalid choice", 0dh, 0ah, "$"
     anyMsg db "Press any key to continue$"
 
@@ -23,11 +26,17 @@
            db ?
            db 02h dup(0)
 
-    inputPrompt db "Input [0-9]> $"
+    inputNumPrompt db "Input [0-9]> $"
 
-    input db 02h
-          db ?
-          db 02h dup(0)
+    inputNum db 02h
+             db ?
+             db 02h dup(0)
+
+    inputStrPrompt db "Input [max 10 chars.]> $"
+
+    inputStr db 0bh
+             db ?
+             db 0bh dup(0)
 
 .code
 setup macro
@@ -89,6 +98,9 @@ INIT:
     cmp ax, 00h
     je VALID
     call errorPop
+    pop ax
+    pop dx
+    pop cx
     jmp INIT
 
 VALID:
@@ -112,6 +124,7 @@ SEC:
 THI:
     cmp al, '3'
     jne FOU
+    call box
     jmp INIT
 
 FOU:
@@ -125,16 +138,16 @@ menu endp
 numond proc
     setup
 
-L:
+NUMLBL1:
     call clearScreen
     output title1
-    output inputPrompt
+    output inputNumPrompt
 
-    lea dx, input
+    lea dx, inputNum
     mov ah, 0ah
     int 21h
 
-    lea si, [input+02h]
+    lea si, [inputNum+02h]
     mov cx, '0'
     mov dx, '9'
     mov al, [si]
@@ -143,12 +156,15 @@ L:
     push ax
     call verify
     cmp ax, 00h
-    je STRT
+    je NUMINIT
     call errorPop
-    jmp L
+    pop ax
+    pop dx
+    pop cx
+    jmp NUMLBL1
 
-STRT:
-    lea di, [input+02h]
+NUMINIT:
+    lea di, [inputNum+02h]
     mov al, [di]
     sub al, '0'
     mov [di], al
@@ -158,20 +174,20 @@ STRT:
 
     output CRLF
     
-LOOP1:
-    lea si, [input+02h]
+NUMSPC1:
+    lea si, [inputNum+02h]
     mov al, [si]
     sub al, ch
     mov bl, al
 
-LOOP2:
+NUMSPC2:
     cmp bl, 00h
-    jle LOOP3
+    jle NUMNUM
     output SPC
     dec bl
-    jmp LOOP2
+    jmp NUMSPC2
 
-LOOP3:
+NUMNUM:
     mov dl, cl
     add dl, '0'
     mov ah, 02h
@@ -180,21 +196,21 @@ LOOP3:
     lea si, back
     mov al, [si]
     cmp al, 01h
-    je LOOP4
+    je NUMDEC
 
     inc cl
     cmp cl, ch
-    jle LOOP3
+    jle NUMNUM
 
     lea di, back
     mov al, 01h
     mov [di], al
     dec cl
 
-LOOP4:
+NUMDEC:
     dec cl
     cmp cl, 00h
-    jge LOOP3
+    jge NUMNUM
 
     mov cl, 00h
 
@@ -207,27 +223,27 @@ LOOP4:
     lea si, rev
     mov al, [si]
     cmp al, 01h
-    je REVERSE
+    je NUMREV
 
     inc ch
-    lea si, [input+02h]
+    lea si, [inputNum+02h]
     mov al, [si]
     cmp ch, al
-    jle LOOP1
+    jle NUMSPC1
 
     lea di, rev
     mov al, 01h
     mov [di], al
     dec ch
-    jmp REVERSE
+    jmp NUMREV
 
-UPUP:
-    jmp LOOP1
+NUMTEMP:
+    jmp NUMSPC1
 
-REVERSE:
+NUMREV:
     dec ch
     cmp ch, 00h
-    jge UPUP
+    jge NUMTEMP
 
     lea di, rev
     mov al, 00h
@@ -236,6 +252,107 @@ REVERSE:
     anyKey
     leaveret
 numond endp
+
+box proc
+    setup
+
+BOXSTART:
+    call clearScreen
+    output title3
+    output inputStrPrompt
+
+    mov ah, 0ah
+    lea dx, inputStr
+    int 21h
+
+    output CRLF
+
+    mov cl, 00h
+    mov ch, 01h
+
+BOXLBL1:
+    mov bl, cl
+    xor bh, bh
+
+    mov dl, [inputStr+bx+02h]
+    mov ah, 02h
+    int 21h
+    output SPC
+
+    lea si, back
+    mov al, [si]
+    cmp al, 01h
+
+    je BOXLBL3
+    inc cl
+    cmp cl, ch
+    jl BOXLBL1
+    
+    lea di, back
+    mov al, 01h
+    mov [di], al
+
+    push cx
+    lea si, [inputStr+01h]
+    mov cl, [si]
+    sub cl, ch
+    add cl, cl
+
+BOXLBL2:
+    dec cl
+    cmp cl, 00h
+    jl BOXRST
+    mov ah, 02h
+    mov dl, [inputStr+bx+02h]
+    int 21h
+    output SPC
+    jmp BOXLBL2
+
+BOXRST:
+    pop cx
+
+BOXLBL3:
+    dec cl
+    cmp cl, 00h
+    jge BOXLBL1
+
+    lea di, back
+    mov al, 00h
+    mov [di], al
+
+    mov cl, 00h
+    output CRLF
+
+    lea si, rev
+    mov al, [si]
+    cmp al, 01h
+    je BOXREV
+    inc ch
+    lea si, [inputStr+01h]
+    mov al, [si]
+    cmp ch, al
+    jle BOXLBL1
+
+    lea di, rev
+    mov al, 01h
+    mov [di], al
+    jmp BOXREV
+
+BOXTMP:
+    jmp BOXLBL1
+
+BOXREV:
+    dec ch
+    cmp ch, 00h
+    jg BOXTMP
+
+    lea di, rev
+    mov al, 00h
+    mov [di], al
+
+    anyKey
+    leaveret
+box endp
 
 verify proc
     setup
