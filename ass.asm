@@ -1,6 +1,7 @@
 .model small
 .stack 100h
 .data
+    return db 00h
     back db 00h
     rev db 00h
     CRLF db 0dh, 0ah, "$"
@@ -19,12 +20,11 @@
     title3 db "Box Patterns", 0dh, 0ah
            db "============", 0dh, 0ah, "$"
 
+    title4 db "Nested Loop Patterns", 0dh, 0ah
+           db "====================", 0dh, 0ah, "$"
+
     errMsg db "Invalid choice", 0dh, 0ah, "$"
     anyMsg db "Press any key to continue$"
-
-    choice db 02h
-           db ?
-           db 02h dup(0)
 
     inputNumPrompt db "Input [0-9]> $"
 
@@ -39,6 +39,20 @@
              db 0bh dup(0)
 
 .code
+prepare macro
+    push bx
+    push cx
+    push dx
+    push ax
+endm
+
+restore macro
+    pop ax
+    pop dx
+    pop cx
+    pop bx
+endm
+
 setup macro
     push bp
     mov bp, sp
@@ -81,30 +95,39 @@ INIT:
 
     output menuMsg
 
-    mov ah, 0ah
-    lea dx, choice
-    int 21h
 
-    output CRLF
-
-    lea si, [choice+02h]
-    mov cx, '0'
+    mov ax, '0'
     mov dx, '4'
+    prepare
+    call getNumInput
+    restore
+    lea si, [return]
     mov ax, [si]
-    push cx
-    push dx
-    push ax
-    call verify
     cmp ax, 00h
     je VALID
+    output CRLF
     call errorPop
-    pop ax
-    pop dx
-    pop cx
     jmp INIT
 
+
+    ; mov ah, 0ah
+    ; lea dx, choice
+    ; int 21h
+
+    ; lea si, [choice+02h]
+    ; mov cx, '0'
+    ; mov dx, '4'
+    ; mov ax, [si]
+    ; prepare
+    ; call verify
+    ; cmp ax, 00h
+    ; je VALID
+    ; restore
+    ; call errorPop
+    ; jmp INIT
+
 VALID:
-    lea si, [choice+02h]
+    lea si, [inputNum+02h]
     mov ax, [si]
     cmp al, '0'
     jne FIR
@@ -128,6 +151,7 @@ THI:
     jmp INIT
 
 FOU:
+    call triangle
     jmp INIT
 
 EN:
@@ -143,31 +167,24 @@ NUMLBL1:
     output title1
     output inputNumPrompt
 
-    lea dx, inputNum
-    mov ah, 0ah
-    int 21h
-
-    lea si, [inputNum+02h]
-    mov cx, '0'
+    mov ax, '0'
     mov dx, '9'
-    mov al, [si]
-    push cx
-    push dx
-    push ax
-    call verify
+    prepare
+    call getNumInput
+    restore
+    lea si, [return]
+    mov ax, [si]
     cmp ax, 00h
     je NUMINIT
+    output CRLF
     call errorPop
-    pop ax
-    pop dx
-    pop cx
     jmp NUMLBL1
 
 NUMINIT:
-    lea di, [inputNum+02h]
-    mov al, [di]
+    lea si, [inputNum+02h]
+    mov al, [si]
     sub al, '0'
-    mov [di], al
+    mov [si], al
 
     mov cl, 00h
     mov ch, 00h
@@ -354,6 +371,95 @@ BOXREV:
     leaveret
 box endp
 
+triangle proc
+    setup
+
+TRILBL1:
+    call clearScreen
+    output title4
+    output inputNumPrompt
+    mov ax, '0'
+    mov dx, '9'
+    prepare
+    call getNumInput
+    restore
+    lea si, [return]
+    mov ax, [si]
+    cmp ax, 00h
+    je TRIINIT
+    output CRLF
+    call errorPop
+    jmp TRILBL1
+
+TRIINIT:
+    output CRLF
+    lea si, [inputNum+02h]
+    mov al, [si]
+    sub al, '0'
+    mov [si], al
+    mov bl, [si]
+    xor bh, bh
+    mov cl, 01h
+
+TRI1:
+    mov ch, bl
+    mov dl, cl
+    mov al, '*'
+    prepare
+    call repeat
+    restore
+    mov dl, ch
+    mov al, ' '
+    prepare
+    call repeat
+    restore
+    mov dl, ch
+    mov al, '*'
+    prepare
+    call repeat
+    restore
+    inc cl
+    dec bl
+    output CRLF
+    cmp bl, 00h
+    jg TRI1
+
+    output CRLF
+
+    lea si, [inputNum+02h]
+    mov bl, [si]
+    mov bh, '1'
+    mov ch, 01h
+    mov cl, '1'
+
+TRI2:
+    mov al, cl
+    mov dl, ch
+    prepare
+    call printNum
+    restore
+    inc ch
+    mov al, ' '
+    mov dl, bl
+    prepare
+    call repeat
+    restore
+    mov al, bh
+    mov dl, bl
+    prepare
+    call printNum
+    restore
+    inc bh
+    dec bl
+    output CRLF
+    cmp bl, 00h
+    jg TRI2
+
+    anyKey
+
+    leaveret
+triangle endp
+
 verify proc
     setup
 
@@ -401,5 +507,54 @@ errorPop proc
 
     leaveret
 errorPop endp
+
+repeat proc
+    setup
+
+    mov cl, [bp+06h]
+    xor ch, ch
+L1:
+    mov dl, [bp+04h]
+    mov ah, 02h
+    int 21h
+    loop L1
+
+    leaveret
+repeat endp
+
+printNum proc
+    setup
+
+    mov dl, [bp+04h]
+    mov cl, [bp+06h]
+    xor ch, ch
+L2:
+    mov ah, 02h
+    int 21h
+    inc dl
+    loop L2
+
+    leaveret
+printNum endp
+
+getNumInput proc
+    setup
+
+    lea dx, inputNum
+    mov ah, 0ah
+    int 21h
+
+    lea si, [inputNum+02h]
+    mov cx, [bp+04h]
+    mov dx, [bp+06h]
+    mov al, [si]
+    prepare
+    call verify
+    lea di, [return]
+    mov [di], ax
+    restore
+
+    leaveret
+getNumInput endp
 
 end main
