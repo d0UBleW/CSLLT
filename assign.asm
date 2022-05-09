@@ -1,3 +1,9 @@
+; function calling convention
+; first param   : ax
+; second param  : dx
+; third param   : cx
+; fourth param  : bx
+
 .model small
 .stack 100h
 .data
@@ -186,7 +192,7 @@ menu endp
 numond proc
     setup
 
-NUMLBL1:
+.NUM_START:
     prepare
     call clearScreen
     restore
@@ -202,14 +208,14 @@ NUMLBL1:
     lea si, [return]
     mov ax, [si]
     cmp ax, 00h
-    je NUMINIT
+    je .NUM_INIT
     output CRLF
     prepare
     call errorPop
     restore
-    jmp NUMLBL1
+    jmp .NUM_START
 
-NUMINIT:
+.NUM_INIT:
     lea si, [inputNum+02h]
     mov al, [si]
     sub al, '0'
@@ -220,22 +226,22 @@ NUMINIT:
 
     output CRLF
     
-NUMSPC1:
+.NUM_SPC1:
     ; calculate spaces
     lea si, [inputNum+02h]
     mov al, [si]
     sub al, ch
     mov bl, al
 
-NUMSPC2:
+.NUM_SPC2:
     ; print spaces
     cmp bl, 00h
-    jle NUMNUM
+    jle .NUM_PRINT
     output SPC
     dec bl
-    jmp NUMSPC2
+    jmp .NUM_SPC2
 
-NUMNUM:
+.NUM_PRINT:
     mov dl, cl
     add dl, '0'
     mov al, dl
@@ -246,12 +252,12 @@ NUMNUM:
     lea si, back
     mov al, [si]
     cmp al, 01h
-    je NUMDEC
+    je .NUM_DECR
 
     ; increase num until it matches the current row number
     inc cl
     cmp cl, ch
-    jle NUMNUM
+    jle .NUM_PRINT
 
     ; num matches the current row number
     lea di, back
@@ -259,11 +265,11 @@ NUMNUM:
     mov [di], al
     dec cl
 
-NUMDEC:
+.NUM_DECR:
     ; decrease num until it reaches '0'
     dec cl
     cmp cl, 00h
-    jge NUMNUM
+    jge .NUM_PRINT
 
     mov cl, 00h
 
@@ -276,29 +282,29 @@ NUMDEC:
     lea si, rev
     mov al, [si]
     cmp al, 01h
-    je NUMREV
+    je .NUM_REV
 
     ; increment current row until it matches the user input number
     inc ch
     lea si, [inputNum+02h]
     mov al, [si]
     cmp ch, al
-    jle NUMSPC1
+    jle .NUM_SPC1
 
     lea di, rev
     mov al, 01h
     mov [di], al
     dec ch
-    jmp NUMREV
+    jmp .NUM_REV
 
-NUMTEMP:
-    jmp NUMSPC1
+.NUM_TMP:
+    jmp .NUM_SPC1
 
-NUMREV:
+.NUM_REV:
     ; decrement current row until it reaches '0'
     dec ch
     cmp ch, 00h
-    jge NUMTEMP
+    jge .NUM_TMP
 
     lea di, rev
     mov al, 00h
@@ -311,7 +317,7 @@ numond endp
 design proc
     setup
 
-DESLBL1:
+.DES_START:
     prepare
     call clearScreen
     restore
@@ -327,14 +333,14 @@ DESLBL1:
     lea si, [return]
     mov ax, [si]
     cmp ax, 00h
-    je DESINIT
+    je .DES_INIT
     output CRLF
     prepare
     call errorPop
     restore
-    jmp DESLBL1
+    jmp .DES_START
 
-DESINIT:
+.DES_INIT:
     output CRLF
     output inputNumPrompt3
     mov ax, '1'
@@ -346,50 +352,50 @@ DESINIT:
     lea si, [return]
     mov ax, [si]
     cmp ax, 00h
-    je DESINIT2
+    je .DES_INIT2
     output CRLF
     prepare
     call errorPop
     restore
-    jmp DESINIT
+    jmp .DES_INIT
 
-DESINIT2:
+.DES_INIT2:
     output CRLF
     lea si, [inputNum+02h]
     mov al, [si]
     sub al, '0'
     mov [si], al
-    mov bl, al
+    mov bl, al ; size
     mov cl, 00h
 
     lea si, [inputNum2+02h]
     mov al, [si]
     sub al, '0'
     mov [si], al
-    mov bh, al
-    mov ch, 00h
+    mov bh, al ; number of shape
+    mov ch, 00h ; row
 
-DESLBL2:
+.DES_PAT:
+    ; set cursor to print starting from n-th shape
     mov dl, ch
     lea si, [inputNum+02h]
     mov al, [si]
     prepare
     call moveCursorColumn
     restore
+
     lea si, [inputNum+02h]
     mov al, [si]
     sub al, cl
     dec al
     mov dl, al
     mov al, ' '
-
     prepare
     call repeat
     restore
 
     mov dl, 01h
     mov al, '*'
-
     prepare
     call repeat
     restore
@@ -397,69 +403,67 @@ DESLBL2:
     mov dl, cl
     add dl, dl
     mov al, ' '
-
     prepare
     call repeat
     restore
 
     mov dl, 01h
     mov al, '*'
-
     prepare
     call repeat
     restore
 
     output CRLF
 
+    ; check if printing the mirror lower part
     lea si, [rev]
     mov al, [si]
     cmp al, 01h
-    je DESREV
+    je .DES_REV
 
     dec bl
     inc cl
     cmp bl, 00h
-    jg DESLBL2
+    jg .DES_PAT
 
     lea di, [rev]
     mov al, 01h
     mov [di], al
+
     inc bl
     dec cl
-    jmp DESREV
+    jmp .DES_REV
 
-DESTMP:
+.DES_TMP:
+    ; move cursor back to the first row of the shape
     lea si, [inputNum+02h]
     mov al, [si]
     prepare
     call resetCursorRow
     restore
-DESTMP2:
-    jmp DESLBL2
 
-DESREV:
+.DES_TMP2:
+    jmp .DES_PAT
+
+.DES_REV:
     inc bl
     dec cl
     lea si, [inputNum+02h]
     mov al, [si]
     cmp bl, al
-    jle DESTMP2
+    jle .DES_TMP2
 
     lea di, [rev]
     mov al, 00h
     mov [di], al
     mov cl, 00h
 
-    ; mov ah, 03h
-    ; mov bh, 00h
-    ; int 10h
-
     lea si, [inputNum+02h]
     mov bl, [si]
 
     inc ch
     cmp ch, bh
-    jl DESTMP
+    jl .DES_TMP
 
     anyKey
     leaveret
@@ -468,7 +472,7 @@ design endp
 box proc
     setup
 
-BOXSTART:
+.BOX_START:
     prepare
     call clearScreen
     restore
@@ -481,10 +485,10 @@ BOXSTART:
 
     output CRLF
 
-    mov cl, 00h
-    mov ch, 01h
+    mov cl, 00h ; col
+    mov ch, 01h ; row
 
-BOXLBL1:
+.BOX_FORW:
     mov bl, cl
     xor bh, bh
 
@@ -495,75 +499,98 @@ BOXLBL1:
     restore
     output SPC
 
+    ; check if printing forward or backward
     lea si, back
     mov al, [si]
     cmp al, 01h
+    je .BOX_BACKW
 
-    je BOXLBL3
+    ; move to the next character in the input string
     inc cl
     cmp cl, ch
-    jl BOXLBL1
-    
+    jl .BOX_FORW
+
+    ; set to printing backward
     lea di, back
     mov al, 01h
     mov [di], al
 
+    ; store the current state of row and col
     push cx
+
+    ; repeatedly print the last printed character
+    ; since the box size is 2 times the input string length
+    ; and we have printed the first `ch` character
+    ; we can take the input string length subtracts it with the number of
+    ; character we have printed, then multiply it by 2
     lea si, [inputStr+01h]
     mov cl, [si]
     sub cl, ch
     add cl, cl
 
-BOXLBL2:
+.BOX_REP:
     dec cl
     cmp cl, 00h
-    jl BOXRST
+    jl .BOX_RSTCX
     mov dl, [inputStr+bx+02h]
     mov al, dl
     prepare
     call printColor
     restore
     output SPC
-    jmp BOXLBL2
+    jmp .BOX_REP
 
-BOXRST:
+.BOX_RSTCX:
     pop cx
 
-BOXLBL3:
+.BOX_BACKW:
+    ; now to print backward, we only need to do the opposite,
+    ; i.e., decrement cl
     dec cl
     cmp cl, 00h
-    jge BOXLBL1
+    jge .BOX_FORW
 
+    ; reset to print forward
     lea di, back
     mov al, 00h
     mov [di], al
-
     mov cl, 00h
     output CRLF
 
+    ; check if printing the mirror lower part
     lea si, rev
     mov al, [si]
     cmp al, 01h
-    je BOXREV
+    je .BOX_REV
+
+    ; increase the first `ch` character to be printed by 1
     inc ch
+
+    ; check if we have printed the whole string
     lea si, [inputStr+01h]
     mov al, [si]
     cmp ch, al
-    jle BOXTMP
+    jle .BOX_TMP
 
+    ; after the whole string is printed,
+    ; set to printing the mirror lower part
     lea di, rev
     mov al, 01h
     mov [di], al
-    jmp BOXREV
+    jmp .BOX_REV
 
-BOXTMP:
-    jmp BOXLBL1
+.BOX_TMP:
+    jmp .BOX_FORW
 
-BOXREV:
+.BOX_REV:
+    ; to print the mirror lower part, just do the opposite of
+    ; increasing the first `ch` character to be printed by 1,
+    ; i.e., decrease the first `ch` character to be printed by 1
     dec ch
     cmp ch, 00h
-    jg BOXTMP
+    jg .BOX_TMP
 
+    ; reset rev value
     lea di, rev
     mov al, 00h
     mov [di], al
@@ -575,40 +602,46 @@ box endp
 triangle proc
     setup
 
-TRILBL1:
+.TRI_START:
     prepare
     call clearScreen
     restore
+
     output title4
     output inputNumPrompt2
+
     mov ax, '1'
     mov dx, '9'
     lea cx, [inputNum]
     prepare
     call getNumInput
     restore
+
     lea si, [return]
     mov ax, [si]
     cmp ax, 00h
-    je TRIINIT
+    je .TRI_INIT
+
     output CRLF
     prepare
     call errorPop
     restore
-    jmp TRILBL1
+    jmp .TRI_START
 
-TRIINIT:
+.TRI_INIT:
     output CRLF
+
     lea si, [inputNum+02h]
     mov al, [si]
     sub al, '0'
     mov [si], al
-    mov bl, [si]
-    xor bh, bh
-    mov cl, 01h
 
-TRI1:
-    mov ch, bl
+    mov bl, [si] ; triangle height
+    xor bh, bh
+    mov cl, 01h ; left triangle length
+
+.TRI_AST:
+    mov ch, bl ; right triangle length
     mov dl, cl
     mov al, '*'
 
@@ -634,17 +667,17 @@ TRI1:
     dec bl
     output CRLF
     cmp bl, 00h
-    jg TRI1
+    jg .TRI_AST
 
     output CRLF
 
     lea si, [inputNum+02h]
-    mov bl, [si]
-    mov bh, '1'
+    mov bl, [si] ; triangle height
+    mov bh, '1' ; right triangle starting digit
     mov ch, 01h
-    mov cl, '1'
+    mov cl, '1' ; left triangle starting digit
 
-TRI2:
+.TRI_NUM:
     mov al, cl
     mov dl, ch
 
@@ -671,7 +704,7 @@ TRI2:
     dec bl
     output CRLF
     cmp bl, 00h
-    jg TRI2
+    jg .TRI_NUM
 
     anyKey
 
@@ -679,20 +712,28 @@ TRI2:
 triangle endp
 
 verify proc
+    ; first param  (bp+04h): number to be verified
+    ; second param (bp+06h): lower bound
+    ; third param (bp+08h): upper bound
+    ; return value to AX register, 0 if valid, 1 if invalid
+
     setup
 
     mov al, [bp+04h]
-    mov ah, [bp+06h]
-    cmp al, ah
-    jg B
     mov ah, [bp+08h]
     cmp al, ah
-    jl B
+    jg .INVLD
+
+    mov ah, [bp+06h]
+    cmp al, ah
+    jl .INVLD
     mov ax, 00h
-    jmp A
-B:
+    jmp .VLD
+
+.INVLD:
     mov ax, 01h
-A:
+
+.VLD:
     leaveret
 
 verify endp
@@ -748,6 +789,9 @@ errorPop proc
 errorPop endp
 
 repeat proc
+    ; first param  (bp+04h): character to be printed
+    ; second param (bp+06h): number of character to be printed
+
     setup
 
     mov cl, [bp+06h]
@@ -755,48 +799,54 @@ repeat proc
     cmp cx, 00h
     je .STOP
 
-L1:
+.REP:
     mov dl, [bp+04h]
     mov al, dl
     prepare
     call printColor
     restore
-    loop L1
+    loop .REP
 
 .STOP:
     leaveret
 repeat endp
 
 printNum proc
+    ; first param  (bp+04h): starting digit to be printed incrementally
+    ; second param (bp+06h): number of digit to be printed
+
     setup
 
     mov dl, [bp+04h]
     mov cl, [bp+06h]
     xor ch, ch
 
-L2:
+.REPN:
     mov al, dl
     prepare
     call printColor
     restore
-    ; mov ah, 02h
-    ; int 21h
     inc dl
-    loop L2
+    loop .REPN
 
     leaveret
 printNum endp
 
 getNumInput proc
+    ; first param  (bp+04h): lower bound
+    ; second param (bp+06h): upper bound
+    ; third param  (bp+08h): address to store input
+    ; return value to `return` symbol, 0 if valid, 1 if invalid
+
     setup
 
+    ; read input
     mov dx, [bp+08h]
     mov ah, 0ah
     int 21h
 
-    ; lea si, [inputNum+02h]
-    mov cx, [bp+04h]
-    mov dx, [bp+06h]
+    mov cx, [bp+06h]
+    mov dx, [bp+04h]
     mov si, [bp+08h]
     add si, 02h
     mov ax, [si]
@@ -810,12 +860,16 @@ getNumInput proc
 getNumInput endp
 
 printColor proc
+    ; first param (bp+04h): character to be printed
+
     setup
 
     mov al, [bp+04h]
     mov bh, 0
     mov bl, al
 
+    ; make sure bl is between 10h to 1fh
+    ; since the program bg color is blue (1h)
 .REPEAT:
     cmp bl, 1fh
     jle .LOWR
@@ -843,10 +897,13 @@ printColor endp
 advanceCursor proc
     setup
 
+    ; get current cursor position
+    ; value returned to DX (DH: row, DL: col)
     mov ah, 03h
     mov bh, 00h
     int 10h
 
+    ; set cursor position
     mov ah, 02h
     inc dl
     int 10h
@@ -855,8 +912,12 @@ advanceCursor proc
 advanceCursor endp
 
 resetCursorRow proc
+    ; first param (bp+04h): design size
+
     setup
     
+    ; get current cursor position
+    ; value returned to DX (DH: row, DL: col)
     mov ah, 03h
     mov bh, 00h
     int 10h
@@ -865,6 +926,7 @@ resetCursorRow proc
     add ch, ch
     dec ch
 
+    ; set cursor position
     mov ah, 02h
     sub dh, ch
     int 10h
@@ -874,8 +936,13 @@ resetCursorRow proc
 resetCursorRow endp
 
 moveCursorColumn proc
+    ; first param  (bp+04h): design size
+    ; second param (bp+06h): n-th design shape
+
     setup
 
+    ; get current cursor position
+    ; value returned to DX (DH: row, DL: col)
     mov ah, 03h
     mov bh, 00h
     int 10h
@@ -888,12 +955,13 @@ moveCursorColumn proc
 .MCCLOOP:
     cmp ch, 00h
     jle .MCCLEAVE
-    mov ah, 02h
     add dl, cl
     dec ch
     jmp .MCCLOOP
 
 .MCCLEAVE:
+    ; set cursor position
+    mov ah, 02h
     int 10h
     leaveret
 moveCursorColumn endp
