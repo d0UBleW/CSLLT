@@ -1,53 +1,62 @@
 .model small
 .stack 100h
 .data
-    return db 00h
-    back db 00h
-    rev db 00h
-    CRLF db 0dh, 0ah, "$"
-    SPC db 20h, "$"
-    menuMsg db "Main Menu", 0dh, 0ah
-         db "1. Number Patterns", 0dh, 0ah
-         db "2. Design Patterns", 0dh, 0ah
-         db "3. Box Patterns", 0dh, 0ah
-         db "4. Nested Loop Patterns", 0dh, 0ah
-         db "0. Exit", 0dh, 0ah, 0dh, 0ah
-         db "choice> $"
-    
-    title1 db "Number Patterns", 0dh, 0ah
-           db "===============", 0dh, 0ah, "$"
+    ext             db 00h
+    return          db 00h
 
-    title2 db "Design Patterns", 0dh, 0ah
-           db "===============", 0dh, 0ah, "$"
+    back            db 00h
 
-    title3 db "Box Patterns", 0dh, 0ah
-           db "============", 0dh, 0ah, "$"
+    rev             db 00h
 
-    title4 db "Nested Loop Patterns", 0dh, 0ah
-           db "====================", 0dh, 0ah, "$"
+    CRLF            db 0dh, 0ah, "$"
 
-    errMsg db "Invalid input", 0dh, 0ah, "$"
-    anyMsg db "Press any key to continue$"
+    SPC             db 20h, "$"
 
-    inputNumPrompt db "Input [0-9]> $"
+    menuMsg         db 01h, " APU Assembly Festival Main Menu ", 02h, 0dh, 0ah
+                    db "1. Number Patterns", 0dh, 0ah
+                    db "2. Design Patterns", 0dh, 0ah
+                    db "3. Box Patterns", 0dh, 0ah
+                    db "4. Nested Loop Patterns", 0dh, 0ah
+                    db "0. Exit", 0dh, 0ah, 0dh, 0ah
+                    db "choice> $"
+
+    title1          db "Number Patterns", 0dh, 0ah
+                    db "===============", 0dh, 0ah, "$"
+
+    title2          db "Design Patterns", 0dh, 0ah
+                    db "===============", 0dh, 0ah, "$"
+
+    title3          db "Box Patterns", 0dh, 0ah
+                    db "============", 0dh, 0ah, "$"
+
+    title4          db "Nested Loop Patterns", 0dh, 0ah
+                    db "====================", 0dh, 0ah, "$"
+
+    errMsg          db "Invalid input", 0dh, 0ah, "$"
+
+    anyMsg          db "Press any key to continue$"
+
+    inputNumPrompt  db "Input [0-9]> $"
+
     inputNumPrompt2 db "Input [1-9]> $"
 
-    inputNum db 02h
-             db ?
-             db 02h dup(0)
+    inputNum        db 02h
+                    db ?
+                    db 02h dup(0)
 
-    inputNum2 db 02h
-              db ?
-              db 02h dup(0)
+    inputNum2       db 02h
+                    db ?
+                    db 02h dup(0)
 
-    inputNumPrompt3 db "Input [1-6]> $"
-    inputNumPrompt4 db "Input [1-6]> $"
+    inputNumPrompt3 db "Number of shapes [1-6]> $"
 
-    inputStrPrompt db "Input [max 10 chars.]> $"
+    inputNumPrompt4 db "Size [1-6]> $"
 
-    inputStr db 0bh
-             db ?
-             db 0bh dup(0)
+    inputStrPrompt  db "Input [max 10 chars.]> $"
+
+    inputStr        db 0bh
+                    db ?
+                    db 0bh dup(0)
 
 .code
 prepare macro
@@ -110,7 +119,6 @@ INIT:
 
     output menuMsg
 
-
     mov ax, '0'
     mov dx, '4'
     lea cx, [inputNum]
@@ -165,6 +173,12 @@ FOU:
     jmp INIT
 
 EN:
+    lea di, [ext]
+    mov al, 01h
+    mov [di], al
+    prepare
+    call clearScreen
+    restore
     leaveret
     
 menu endp
@@ -201,18 +215,20 @@ NUMINIT:
     sub al, '0'
     mov [si], al
 
-    mov cl, 00h
-    mov ch, 00h
+    mov cl, 00h ; col
+    mov ch, 00h ; row
 
     output CRLF
     
 NUMSPC1:
+    ; calculate spaces
     lea si, [inputNum+02h]
     mov al, [si]
     sub al, ch
     mov bl, al
 
 NUMSPC2:
+    ; print spaces
     cmp bl, 00h
     jle NUMNUM
     output SPC
@@ -232,16 +248,19 @@ NUMNUM:
     cmp al, 01h
     je NUMDEC
 
+    ; increase num until it matches the current row number
     inc cl
     cmp cl, ch
     jle NUMNUM
 
+    ; num matches the current row number
     lea di, back
     mov al, 01h
     mov [di], al
     dec cl
 
 NUMDEC:
+    ; decrease num until it reaches '0'
     dec cl
     cmp cl, 00h
     jge NUMNUM
@@ -259,6 +278,7 @@ NUMDEC:
     cmp al, 01h
     je NUMREV
 
+    ; increment current row until it matches the user input number
     inc ch
     lea si, [inputNum+02h]
     mov al, [si]
@@ -275,6 +295,7 @@ NUMTEMP:
     jmp NUMSPC1
 
 NUMREV:
+    ; decrement current row until it reaches '0'
     dec ch
     cmp ch, 00h
     jge NUMTEMP
@@ -353,7 +374,7 @@ DESLBL2:
     lea si, [inputNum+02h]
     mov al, [si]
     prepare
-    call moveCursor
+    call moveCursorColumn
     restore
     lea si, [inputNum+02h]
     mov al, [si]
@@ -679,19 +700,40 @@ verify endp
 clearScreen proc
     setup
 
+    ; check exit
+    lea si, [ext]
+    mov al, [si]
+    cmp al, 00h
+    jne .RESETBG
+
+    ; scroll up (AL = 0 : clear)
     mov ax, 0600h
+
+    ; bg blue, fg light cyan
+    mov bh, 1bh
+    jmp .NXT
+
+.RESETBG:
+    ; scroll up (AL = 19h : scroll up 19h lines )
+    mov ax, 0619h
+    ; bg black, fg light gray
     mov bh, 07h
+
+.NXT:
+    ; CH (upper row) CL (left column)
     mov cx, 0000h
-    mov dx, 184fh ; 24 x 79 (rows x cols)
+    ; DH (lower row) DL (right column)
+    mov dx, 184fh ; 24 (18h) x 79 (4fh) (rows x cols)
     int 10h
 
+    ; set cursor to top left
     mov ax, 0200h
     xor bh, bh
+    ; DH (row) DL (col)
     xor dx, dx
     int 10h
 
     leaveret
-
 clearScreen endp
 
 errorPop proc
@@ -719,8 +761,6 @@ L1:
     prepare
     call printColor
     restore
-    ; mov ah, 02h
-    ; int 21h
     loop L1
 
 .STOP:
@@ -774,24 +814,18 @@ printColor proc
 
     mov al, [bp+04h]
     mov bh, 0
-    cmp al, 20h
-    jne .STRT
-    mov bl, 00h
-    jmp .OK
-
-.STRT:
     mov bl, al
 
 .REPEAT:
-    cmp bl, 0fh
+    cmp bl, 1fh
     jle .LOWR
     sub bl, 07h
     jmp .REPEAT
 
 .LOWR:
-    cmp bl, 0ah
+    cmp bl, 10h
     jge .OK
-    add bl, 05h
+    add bl, 03h
     jmp .REPEAT
 
 .OK:
@@ -839,7 +873,7 @@ resetCursorRow proc
 
 resetCursorRow endp
 
-moveCursor proc
+moveCursorColumn proc
     setup
 
     mov ah, 03h
@@ -851,17 +885,17 @@ moveCursor proc
     add cl, cl
     dec cl
 
-L3:
+.MCCLOOP:
     cmp ch, 00h
-    jle L4
+    jle .MCCLEAVE
     mov ah, 02h
     add dl, cl
     dec ch
-    jmp L3
+    jmp .MCCLOOP
 
-L4:
+.MCCLEAVE:
     int 10h
     leaveret
-moveCursor endp
+moveCursorColumn endp
 
 end main
