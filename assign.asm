@@ -214,13 +214,14 @@ numond proc
     sub al, '0'
     mov [si], al
 
-    mov cl, 00h ; col
-    mov ch, 00h ; row
+    mov cl, 00h ; col starting from 0
+    mov ch, 00h ; row starting from 0
 
     output CRLF
     
 .NUM_SPC1:
     ; calculate spaces
+    ; number of spaces = user input
     lea si, [inputNum+02h]
     mov al, [si]
     sub al, ch
@@ -235,6 +236,7 @@ numond proc
     jmp .NUM_SPC2
 
 .NUM_PRINT:
+    ; print num starting from 0 incrementally
     save
     mov al, cl
     add al, '0'
@@ -265,8 +267,10 @@ numond proc
     cmp cl, 00h
     jge .NUM_PRINT
 
+    ; reset num to 0
     mov cl, 00h
 
+    ; reset `back` to print incrementally again
     lea di, back
     mov al, 00h
     mov [di], al
@@ -278,13 +282,16 @@ numond proc
     cmp al, 01h
     je .NUM_REV
 
-    ; increment current row until it matches the user input number
+    ; increment current row and print pattern until it matches the user input
+    ; number
     inc ch
     lea si, [inputNum+02h]
     mov al, [si]
     cmp ch, al
     jle .NUM_SPC1
 
+    ; current row matches user input
+    ; set `rev` to start printing the lower part
     lea di, rev
     mov al, 01h
     mov [di], al
@@ -295,11 +302,12 @@ numond proc
     jmp .NUM_SPC1
 
 .NUM_REV:
-    ; decrement current row until it reaches '0'
+    ; decrement current row and print pattern until it reaches '0'
     dec ch
     cmp ch, 00h
     jge .NUM_TMP
 
+    ; reset `rev`
     lea di, rev
     mov al, 00h
     mov [di], al
@@ -315,9 +323,11 @@ design proc
     save
     call clearScreen
     restore
+
     output title2
     output inputNumPrompt4
 
+    ; get the pattern size
     save
     lea si, [inputNum]
     push si
@@ -336,6 +346,7 @@ design proc
     jmp .DES_START
 
 .DES_INIT:
+    ; get the pattern length (number of diamond)
     output CRLF
     output inputNumPrompt3
 
@@ -363,17 +374,18 @@ design proc
     sub al, '0'
     mov [si], al
     mov bl, al ; size
-    mov cl, 00h
+    mov cl, 00h ; row
 
     lea si, [inputNum2+02h]
     mov al, [si]
     sub al, '0'
     mov [si], al
     mov bh, al ; number of shape
-    mov ch, 00h ; row
+    mov ch, 00h ; n-th shape starting from 0
 
 .DES_PAT:
     ; set cursor to print starting from n-th shape
+    ; n-th shape starting column = ((2*size)-1)*n
     save
     mov ah, ch
     lea si, [inputNum+02h]
@@ -383,6 +395,8 @@ design proc
     add sp, 2 
     restore
 
+    ; print spaces
+    ; num of spaces = size - row - 1
     save
     lea si, [inputNum+02h]
     mov al, [si]
@@ -403,6 +417,8 @@ design proc
     add sp, 2
     restore
 
+    ; print spaces between '*'
+    ; num of spaces = 2*row
     save
     mov ah, cl
     add ah, ah
@@ -428,21 +444,30 @@ design proc
     cmp al, 01h
     je .DES_REV
 
+    ; after each row iteration, decrease size and repeat pattern printing
+    ; until size reaches 0
     dec bl
     inc cl
     cmp bl, 00h
     jg .DES_TMP2
 
+    ; size reaches 0
+    ; set `rev` to start printing the mirrow lower part
     lea di, [rev]
     mov al, 01h
     mov [di], al
 
+    ; when printing the mirrow lower part, increase the size back until it
+    ; reaches back to original input
+    ; get `bl` back to 1 to start printing the pattern since `bl = 1` is the
+    ; mirroring row which has been printed earlier
     inc bl
     dec cl
     jmp .DES_REV
 
 .DES_TMP:
     ; move cursor back to the first row of the shape
+    ; current cursor row - (2*size-1)
     save
     lea si, [inputNum+02h]
     mov al, [si]
@@ -455,6 +480,7 @@ design proc
     jmp .DES_PAT
 
 .DES_REV:
+    ; increase `bl` and print pattern until bl reaches back to original input
     inc bl
     dec cl
     lea si, [inputNum+02h]
@@ -462,14 +488,17 @@ design proc
     cmp bl, al
     jle .DES_TMP2
 
+    ; reset `rev`
     lea di, [rev]
     mov al, 00h
     mov [di], al
     mov cl, 00h
 
+    ; reset `bl` to original input
     lea si, [inputNum+02h]
     mov bl, [si]
 
+    ; check if we have printed according to the specified number of shapes
     inc ch
     cmp ch, bh
     jl .DES_TMP
