@@ -1,14 +1,7 @@
-; function calling convention
-; first param   : ax
-; second param  : dx
-; third param   : cx
-; fourth param  : bx
-
 .model small
 .stack 100h
 .data
     ext             db 00h
-    return          db 00h
 
     back            db 00h
 
@@ -65,15 +58,13 @@
                     db 0bh dup(0)
 
 .code
-prepare macro
+save macro
     push bx
     push cx
     push dx
-    push ax
 endm
 
 restore macro
-    pop ax
     pop dx
     pop cx
     pop bx
@@ -107,7 +98,7 @@ main proc
     mov ax, @data
     mov ds, ax
 
-    prepare
+    save
     call menu
     restore
 
@@ -119,24 +110,25 @@ main endp
 menu proc
     setup
 INIT:
-    prepare
+    save
     call clearScreen
     restore
 
     output menuMsg
 
-    mov ax, '0'
-    mov dx, '4'
-    lea cx, [inputNum]
-    prepare
+    save
+    lea si, [inputNum]
+    push si
+    mov ah, '4'
+    mov al, '0'
+    push ax
     call getNumInput
+    add sp, 4
     restore
-    lea si, [return]
-    mov ax, [si]
     cmp ax, 00h
     je VALID
     output CRLF
-    prepare
+    save
     call errorPop
     restore
     jmp INIT
@@ -151,7 +143,7 @@ VALID:
 FIR:
     cmp al, '1'
     jne SEC
-    prepare
+    save
     call numond
     restore
     jmp INIT
@@ -159,7 +151,7 @@ FIR:
 SEC:
     cmp al, '2'
     jne THI
-    prepare
+    save
     call design
     restore
     jmp INIT
@@ -167,13 +159,13 @@ SEC:
 THI:
     cmp al, '3'
     jne FOU
-    prepare
+    save
     call box
     restore 
     jmp INIT
 
 FOU:
-    prepare
+    save
     call triangle
     restore
     jmp INIT
@@ -182,7 +174,7 @@ EN:
     lea di, [ext]
     mov al, 01h
     mov [di], al
-    prepare
+    save
     call clearScreen
     restore
     leaveret
@@ -193,24 +185,25 @@ numond proc
     setup
 
 .NUM_START:
-    prepare
+    save
     call clearScreen
     restore
     output title1
     output inputNumPrompt
 
-    mov ax, '0'
-    mov dx, '9'
-    lea cx, [inputNum]
-    prepare
+    save
+    lea si, [inputNum]
+    push si
+    mov ah, '9'
+    mov al, '0'
+    push ax
     call getNumInput
+    add sp, 4
     restore
-    lea si, [return]
-    mov ax, [si]
     cmp ax, 00h
     je .NUM_INIT
     output CRLF
-    prepare
+    save
     call errorPop
     restore
     jmp .NUM_START
@@ -242,11 +235,12 @@ numond proc
     jmp .NUM_SPC2
 
 .NUM_PRINT:
-    mov dl, cl
-    add dl, '0'
-    mov al, dl
-    prepare
+    save
+    mov al, cl
+    add al, '0'
+    push ax
     call printColor
+    add sp, 2
     restore
 
     lea si, back
@@ -318,24 +312,25 @@ design proc
     setup
 
 .DES_START:
-    prepare
+    save
     call clearScreen
     restore
     output title2
     output inputNumPrompt4
 
-    mov ax, '1'
-    mov dx, '6'
-    lea cx, [inputNum]
-    prepare
+    save
+    lea si, [inputNum]
+    push si
+    mov ah, '6'
+    mov al, '1'
+    push ax
     call getNumInput
+    add sp, 4
     restore
-    lea si, [return]
-    mov ax, [si]
     cmp ax, 00h
     je .DES_INIT
     output CRLF
-    prepare
+    save
     call errorPop
     restore
     jmp .DES_START
@@ -343,18 +338,20 @@ design proc
 .DES_INIT:
     output CRLF
     output inputNumPrompt3
-    mov ax, '1'
-    mov dx, '6'
-    lea cx, [inputNum2]
-    prepare
+
+    save
+    lea si, [inputNum2]
+    push si
+    mov ah, '6'
+    mov al, '1'
+    push ax
     call getNumInput
+    add sp, 4
     restore
-    lea si, [return]
-    mov ax, [si]
     cmp ax, 00h
     je .DES_INIT2
     output CRLF
-    prepare
+    save
     call errorPop
     restore
     jmp .DES_INIT
@@ -377,40 +374,50 @@ design proc
 
 .DES_PAT:
     ; set cursor to print starting from n-th shape
-    mov dl, ch
+    save
+    mov ah, ch
     lea si, [inputNum+02h]
     mov al, [si]
-    prepare
+    push ax
     call moveCursorColumn
+    add sp, 2 
     restore
 
+    save
     lea si, [inputNum+02h]
     mov al, [si]
     sub al, cl
     dec al
-    mov dl, al
+    mov ah, al
     mov al, ' '
-    prepare
+    push ax
     call repeat
+    add sp, 2
     restore
 
-    mov dl, 01h
+    save
+    mov ah, 01h
     mov al, '*'
-    prepare
+    push ax
     call repeat
+    add sp, 2
     restore
 
-    mov dl, cl
-    add dl, dl
+    save
+    mov ah, cl
+    add ah, ah
     mov al, ' '
-    prepare
+    push ax
     call repeat
+    add sp, 2
     restore
 
-    mov dl, 01h
+    save
+    mov ah, 01h
     mov al, '*'
-    prepare
+    push ax
     call repeat
+    add sp, 2
     restore
 
     output CRLF
@@ -424,7 +431,7 @@ design proc
     dec bl
     inc cl
     cmp bl, 00h
-    jg .DES_PAT
+    jg .DES_TMP2
 
     lea di, [rev]
     mov al, 01h
@@ -436,10 +443,12 @@ design proc
 
 .DES_TMP:
     ; move cursor back to the first row of the shape
+    save
     lea si, [inputNum+02h]
     mov al, [si]
-    prepare
+    push ax
     call resetCursorRow
+    add sp, 2
     restore
 
 .DES_TMP2:
@@ -473,7 +482,7 @@ box proc
     setup
 
 .BOX_START:
-    prepare
+    save
     call clearScreen
     restore
     output title3
@@ -492,10 +501,12 @@ box proc
     mov bl, cl
     xor bh, bh
 
+    save
     mov dl, [inputStr+bx+02h]
     mov al, dl
-    prepare
+    push ax
     call printColor
+    add sp, 2
     restore
     output SPC
 
@@ -532,10 +543,12 @@ box proc
     dec cl
     cmp cl, 00h
     jl .BOX_RSTCX
+    save
     mov dl, [inputStr+bx+02h]
     mov al, dl
-    prepare
+    push ax
     call printColor
+    add sp, 2
     restore
     output SPC
     jmp .BOX_REP
@@ -603,27 +616,28 @@ triangle proc
     setup
 
 .TRI_START:
-    prepare
+    save
     call clearScreen
     restore
 
     output title4
     output inputNumPrompt2
 
-    mov ax, '1'
-    mov dx, '9'
-    lea cx, [inputNum]
-    prepare
+    save
+    lea si, [inputNum]
+    push si
+    mov ah, '9'
+    mov al, '1'
+    push ax
     call getNumInput
+    add sp, 4
     restore
 
-    lea si, [return]
-    mov ax, [si]
     cmp ax, 00h
     je .TRI_INIT
 
     output CRLF
-    prepare
+    save
     call errorPop
     restore
     jmp .TRI_START
@@ -642,25 +656,29 @@ triangle proc
 
 .TRI_AST:
     mov ch, bl ; right triangle length
-    mov dl, cl
-    mov al, '*'
 
-    prepare
+    save
+    mov ah, cl
+    mov al, '*'
+    push ax
     call repeat
+    add sp, 2
     restore
 
-    mov dl, ch
+    save
+    mov ah, ch
     mov al, ' '
-
-    prepare
+    push ax
     call repeat
+    add sp, 2
     restore
 
-    mov dl, ch
+    save
+    mov ah, ch
     mov al, '*'
-
-    prepare
+    push ax
     call repeat
+    add sp, 2
     restore
     
     inc cl
@@ -678,26 +696,30 @@ triangle proc
     mov cl, '1' ; left triangle starting digit
 
 .TRI_NUM:
+    save
     mov al, cl
-    mov dl, ch
-
-    prepare
+    mov ah, ch
+    push ax
     call printNum
+    add sp, 2
     restore
 
     inc ch
+
+    save
     mov al, ' '
-    mov dl, bl
-
-    prepare
+    mov ah, bl
+    push ax
     call repeat
+    add sp, 2
     restore
-
-    mov al, bh
-    mov dl, bl
     
-    prepare
+    save
+    mov al, bh
+    mov ah, bl
+    push ax
     call printNum
+    add sp, 2
     restore
 
     inc bh
@@ -713,18 +735,18 @@ triangle endp
 
 verify proc
     ; first param  (bp+04h): number to be verified
-    ; second param (bp+06h): lower bound
-    ; third param (bp+08h): upper bound
+    ; second param (bp+05h): lower bound
+    ; third param (bp+06h): upper bound
     ; return value to AX register, 0 if valid, 1 if invalid
 
     setup
 
     mov al, [bp+04h]
-    mov ah, [bp+08h]
+    mov ah, [bp+06h]
     cmp al, ah
     jg .INVLD
 
-    mov ah, [bp+06h]
+    mov ah, [bp+05h]
     cmp al, ah
     jl .INVLD
     mov ax, 00h
@@ -735,7 +757,6 @@ verify proc
 
 .VLD:
     leaveret
-
 verify endp
 
 clearScreen proc
@@ -790,20 +811,22 @@ errorPop endp
 
 repeat proc
     ; first param  (bp+04h): character to be printed
-    ; second param (bp+06h): number of character to be printed
+    ; second param (bp+05h): number of character to be printed
 
     setup
 
-    mov cl, [bp+06h]
+    mov cl, [bp+05h]
     xor ch, ch
     cmp cx, 00h
     je .STOP
 
 .REP:
+    save
     mov dl, [bp+04h]
     mov al, dl
-    prepare
+    push ax
     call printColor
+    add sp, 2
     restore
     loop .REP
 
@@ -813,18 +836,20 @@ repeat endp
 
 printNum proc
     ; first param  (bp+04h): starting digit to be printed incrementally
-    ; second param (bp+06h): number of digit to be printed
+    ; second param (bp+05h): number of digit to be printed
 
     setup
 
     mov dl, [bp+04h]
-    mov cl, [bp+06h]
+    mov cl, [bp+05h]
     xor ch, ch
 
 .REPN:
+    save
     mov al, dl
-    prepare
+    push ax
     call printColor
+    add sp, 2
     restore
     inc dl
     loop .REPN
@@ -834,26 +859,27 @@ printNum endp
 
 getNumInput proc
     ; first param  (bp+04h): lower bound
-    ; second param (bp+06h): upper bound
-    ; third param  (bp+08h): address to store input
+    ; second param (bp+05h): upper bound
+    ; third param  (bp+06h): address to store input
     ; return value to `return` symbol, 0 if valid, 1 if invalid
 
     setup
 
     ; read input
-    mov dx, [bp+08h]
+    mov dx, [bp+06h]
     mov ah, 0ah
     int 21h
 
-    mov cx, [bp+06h]
-    mov dx, [bp+04h]
-    mov si, [bp+08h]
+    save
+    mov al, [bp+05h]
+    push ax
+    mov si, [bp+06h]
     add si, 02h
-    mov ax, [si]
-    prepare
+    mov al, [si]
+    mov ah, [bp+04h]
+    push ax
     call verify
-    lea di, [return]
-    mov [di], ax
+    add sp, 4
     restore
 
     leaveret
@@ -887,7 +913,7 @@ printColor proc
     mov ah, 09h
     int 10h
     
-    prepare
+    save
     call advanceCursor
     restore
     
@@ -932,12 +958,11 @@ resetCursorRow proc
     int 10h
 
     leaveret
-
 resetCursorRow endp
 
 moveCursorColumn proc
     ; first param  (bp+04h): design size
-    ; second param (bp+06h): n-th design shape
+    ; second param (bp+05h): n-th design shape
 
     setup
 
@@ -948,7 +973,7 @@ moveCursorColumn proc
     int 10h
 
     mov cl, [bp+04h]
-    mov ch, [bp+06h]
+    mov ch, [bp+05h]
     add cl, cl
     dec cl
 
@@ -963,6 +988,7 @@ moveCursorColumn proc
     ; set cursor position
     mov ah, 02h
     int 10h
+
     leaveret
 moveCursorColumn endp
 
