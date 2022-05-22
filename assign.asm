@@ -111,6 +111,7 @@ main endp
 
 menu proc
     setup
+    ; allocate 2 bytes for getNumInput return value
     sub sp, 2
 
 INIT:
@@ -188,6 +189,7 @@ menu endp
 
 numond proc
     setup
+    ; allocate 2 bytes for getNumInput return value
     sub sp, 2
 
 .NUM_START:
@@ -325,6 +327,7 @@ numond endp
 
 design proc
     setup
+    ; allocate 2 bytes for getNumInput return value
     sub sp, 2
 
 .DES_START:
@@ -649,6 +652,7 @@ box endp
 
 triangle proc
     setup
+    ; allocate 2 bytes for getNumInput return value
     sub sp, 2
 
 .TRI_START:
@@ -917,6 +921,7 @@ getNumInput proc
     ; return value to AX register, 0 if valid, 1 if invalid
 
     setup
+    ; allocate 2 bytes for verify return value
     sub sp, 2
 
     ; read input
