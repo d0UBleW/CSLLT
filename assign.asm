@@ -59,6 +59,7 @@
 
 .code
 save macro
+    push ax
     push bx
     push cx
     push dx
@@ -68,6 +69,7 @@ restore macro
     pop dx
     pop cx
     pop bx
+    pop ax
 endm
 
 setup macro
@@ -109,6 +111,8 @@ main endp
 
 menu proc
     setup
+    sub sp, 2
+
 INIT:
     save
     call clearScreen
@@ -123,9 +127,10 @@ INIT:
     mov al, '0'
     push ax
     call getNumInput
+    mov [bp-02h], ax
     add sp, 4
     restore
-    cmp ax, 00h
+    cmp word ptr [bp-02h], 00h
     je VALID
     output CRLF
     save
@@ -183,6 +188,7 @@ menu endp
 
 numond proc
     setup
+    sub sp, 2
 
 .NUM_START:
     save
@@ -198,9 +204,10 @@ numond proc
     mov al, '0'
     push ax
     call getNumInput
+    mov [bp-02h], ax
     add sp, 4
     restore
-    cmp ax, 00h
+    cmp word ptr [bp-02h], 00h
     je .NUM_INIT
     output CRLF
     save
@@ -318,6 +325,7 @@ numond endp
 
 design proc
     setup
+    sub sp, 2
 
 .DES_START:
     save
@@ -335,9 +343,10 @@ design proc
     mov al, '1'
     push ax
     call getNumInput
+    mov [bp-02h], ax
     add sp, 4
     restore
-    cmp ax, 00h
+    cmp word ptr [bp-02h], 00h
     je .DES_INIT
     output CRLF
     save
@@ -357,9 +366,10 @@ design proc
     mov al, '1'
     push ax
     call getNumInput
+    mov [bp-02h], ax
     add sp, 4
     restore
-    cmp ax, 00h
+    cmp word ptr [bp-02h], 00h
     je .DES_INIT2
     output CRLF
     save
@@ -516,15 +526,18 @@ box proc
 
     output CRLF
 
-    mov cl, 00h ; col
-    mov ch, 01h ; row
+    mov cl, 00h ; col starting from 0
+    mov ch, 01h ; row starting from 1
 
 .BOX_FORW:
+    ; set the index of string to be printed in which the index is equal to
+    ; the column
     mov bl, cl
     xor bh, bh
 
     save
-    mov dl, [inputStr+bx+02h]
+    ; get character from the specified index
+    mov dl, [inputStr+02h+bx]
     mov al, dl
     push ax
     call printColor
@@ -543,7 +556,7 @@ box proc
     cmp cl, ch
     jl .BOX_FORW
 
-    ; set to printing backward
+    ; set `back` to printing backward
     lea di, back
     mov al, 01h
     mov [di], al
@@ -585,7 +598,7 @@ box proc
     cmp cl, 00h
     jge .BOX_FORW
 
-    ; reset to print forward
+    ; reset `back` to print forward
     lea di, back
     mov al, 00h
     mov [di], al
@@ -625,7 +638,7 @@ box proc
     cmp ch, 00h
     jg .BOX_TMP
 
-    ; reset rev value
+    ; reset `rev` value
     lea di, rev
     mov al, 00h
     mov [di], al
@@ -636,6 +649,7 @@ box endp
 
 triangle proc
     setup
+    sub sp, 2
 
 .TRI_START:
     save
@@ -645,6 +659,7 @@ triangle proc
     output title4
     output inputNumPrompt2
 
+    ; get input between 1 and 9 inclusively
     save
     lea si, [inputNum]
     push si
@@ -652,10 +667,10 @@ triangle proc
     mov al, '1'
     push ax
     call getNumInput
+    mov [bp-02h], ax
     add sp, 4
     restore
-
-    cmp ax, 00h
+    cmp word ptr [bp-02h], 00h
     je .TRI_INIT
 
     output CRLF
@@ -674,12 +689,14 @@ triangle proc
 
     mov bl, [si] ; triangle height
     xor bh, bh
-    mov cl, 01h ; left triangle length
+    mov cl, 01h ; left-side triangle starting length
 
 .TRI_AST:
-    mov ch, bl ; right triangle length
+    mov ch, bl ; right-side triangle starting length
 
+    ; print left-side triangle
     save
+    ; print '*' as many as the specified left-side length
     mov ah, cl
     mov al, '*'
     push ax
@@ -687,6 +704,7 @@ triangle proc
     add sp, 2
     restore
 
+    ; print spaces
     save
     mov ah, ch
     mov al, ' '
@@ -695,7 +713,9 @@ triangle proc
     add sp, 2
     restore
 
+    ; print right-side triangle
     save
+    ; print '*' as many as the specified right-side length
     mov ah, ch
     mov al, '*'
     push ax
@@ -703,7 +723,9 @@ triangle proc
     add sp, 2
     restore
     
+    ; increase left-side length
     inc cl
+    ; decrease right-side length
     dec bl
     output CRLF
     cmp bl, 00h
@@ -712,21 +734,23 @@ triangle proc
     output CRLF
 
     lea si, [inputNum+02h]
-    mov bl, [si] ; triangle height
-    mov bh, '1' ; right triangle starting digit
-    mov ch, 01h
-    mov cl, '1' ; left triangle starting digit
+    mov bl, [si] ; right-side triangle num of digit
+    mov bh, '1' ; right-side triangle starting digit
+    mov ch, 01h ; left-side triangle num of digit
+    mov cl, '1' ; left-side triangle starting digit
 
 .TRI_NUM:
+    ; print left-side triangle where the starting digit is always 1
     save
+    ; reset left-side triangle starting digit to 1
     mov al, cl
+    ; print a sequence starting from digit 1 with difference equal to +1 and
+    ; sequence length equal to `ch`
     mov ah, ch
     push ax
     call printNum
     add sp, 2
     restore
-
-    inc ch
 
     save
     mov al, ' '
@@ -737,14 +761,21 @@ triangle proc
     restore
     
     save
+    ; set starting digit of right-side triangle
     mov al, bh
+    ; print a sequence starting from digit `bh` with difference equal to +1
+    ; and sequence length equal to `bl`
     mov ah, bl
     push ax
     call printNum
     add sp, 2
     restore
 
+    ; increment left-side triangle num of digit to be printed
+    inc ch
+    ; increment right-side triangle starting digit by 1
     inc bh
+    ; decrement right-side triangle num of digit to be printed
     dec bl
     output CRLF
     cmp bl, 00h
@@ -883,9 +914,10 @@ getNumInput proc
     ; first param  (bp+04h): lower bound
     ; second param (bp+05h): upper bound
     ; third param  (bp+06h): address to store input
-    ; return value to `return` symbol, 0 if valid, 1 if invalid
+    ; return value to AX register, 0 if valid, 1 if invalid
 
     setup
+    sub sp, 2
 
     ; read input
     mov dx, [bp+06h]
@@ -901,8 +933,10 @@ getNumInput proc
     mov ah, [bp+04h]
     push ax
     call verify
+    mov [bp-02h], ax
     add sp, 4
     restore
+    mov ax, [bp-02h]
 
     leaveret
 getNumInput endp
