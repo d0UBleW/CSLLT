@@ -372,15 +372,13 @@ design proc
     lea si, [inputNum+02h]
     mov al, [si]
     sub al, '0'
-    mov [si], al
-    mov bl, al ; size
+    mov [si], al ; size
     mov cl, 00h ; row
 
     lea si, [inputNum2+02h]
     mov al, [si]
     sub al, '0'
-    mov [si], al
-    mov bh, al ; number of shape
+    mov [si], al ; number of shape
     mov ch, 00h ; n-th shape starting from 0
 
 .DES_PAT:
@@ -444,12 +442,13 @@ design proc
     cmp al, 01h
     je .DES_REV
 
-    ; after each row iteration, decrease size and repeat pattern printing
-    ; until size reaches 0
-    dec bl
+    ; on each iteration, increase row until it reaches user input on shape
+    ; size
+    lea si, [inputNum+02h]
+    mov al, [si]
     inc cl
-    cmp bl, 00h
-    jg .DES_TMP2
+    cmp cl, al
+    jl .DES_TMP2
 
     ; size reaches 0
     ; set `rev` to start printing the mirrow lower part
@@ -457,11 +456,8 @@ design proc
     mov al, 01h
     mov [di], al
 
-    ; when printing the mirrow lower part, increase the size back until it
-    ; reaches back to original input
-    ; get `bl` back to 1 to start printing the pattern since `bl = 1` is the
-    ; mirroring row which has been printed earlier
-    inc bl
+    ; when printing the mirrow lower part, decrease our row to the point where
+    ; it printed the mirroring row, i.e., when row = input-1
     dec cl
     jmp .DES_REV
 
@@ -480,27 +476,24 @@ design proc
     jmp .DES_PAT
 
 .DES_REV:
-    ; increase `bl` and print pattern until bl reaches back to original input
-    inc bl
+    ; decrease `cl` until it reaches 0
     dec cl
-    lea si, [inputNum+02h]
-    mov al, [si]
-    cmp bl, al
-    jle .DES_TMP2
+    cmp cl, 00h
+    jge .DES_TMP2
 
     ; reset `rev`
     lea di, [rev]
     mov al, 00h
     mov [di], al
-    mov cl, 00h
 
-    ; reset `bl` to original input
-    lea si, [inputNum+02h]
-    mov bl, [si]
+    ; reset row
+    mov cl, 00h
 
     ; check if we have printed according to the specified number of shapes
     inc ch
-    cmp ch, bh
+    lea si, [inputNum2+02h]
+    mov al, [si]
+    cmp ch, al
     jl .DES_TMP
 
     anyKey
