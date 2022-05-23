@@ -16,6 +16,7 @@
                     db "2. Design Patterns", 0dh, 0ah
                     db "3. Box Patterns", 0dh, 0ah
                     db "4. Nested Loop Patterns", 0dh, 0ah
+                    db "5. Event Information", 0dh, 0ah
                     db "0. Exit", 0dh, 0ah, 0dh, 0ah
                     db "choice> $"
 
@@ -30,6 +31,22 @@
 
     title4          db "Nested Loop Patterns", 0dh, 0ah
                     db "====================", 0dh, 0ah, "$"
+
+    title5          db "Event Information", 0dh, 0ah
+                    db "=================", 0dh, 0ah, "$"
+
+    infoMsg         db "| Welcome to APU Assembly Festival  |", 0dh, 0ah
+                    db "|                                   |", 0dh, 0ah
+                    db "| In this event, you are invited to |", 0dh, 0ah
+                    db "| explore about assembly language.  |", 0dh, 0ah
+                    db "| You will be guided to write your  |", 0dh, 0ah
+                    db "| own program in assembly language. |", 0dh, 0ah
+                    db "|                                   |", 0dh, 0ah
+                    db "| Come join us on:                  |", 0dh, 0ah
+                    db "|     Date : 31 July 2022           |", 0dh, 0ah
+                    db "|     Time : 13:00 - 18:00          |", 0dh, 0ah
+                    db "|     Venue: APU Campus 3rd floor   |", 0dh, 0ah
+                    db "$"
 
     errMsg          db "Invalid input", 0dh, 0ah, "$"
 
@@ -112,7 +129,7 @@ main endp
 menu proc
     setup
     ; allocate 2 bytes for getNumInput return value
-    sub sp, 2
+    sub sp, 2h
 
 INIT:
     save
@@ -124,12 +141,12 @@ INIT:
     save
     lea si, [inputNum]
     push si
-    mov ah, '4'
+    mov ah, '5'
     mov al, '0'
     push ax
     call getNumInput
     mov [bp-02h], ax
-    add sp, 4
+    add sp, 4h
     restore
     cmp word ptr [bp-02h], 00h
     je VALID
@@ -171,8 +188,16 @@ THI:
     jmp INIT
 
 FOU:
+    cmp al, '4'
+    jne FIV
     save
     call triangle
+    restore
+    jmp INIT
+
+FIV:
+    save
+    call info
     restore
     jmp INIT
 
@@ -187,10 +212,46 @@ EN:
     
 menu endp
 
+info proc
+    setup
+
+    save
+    call clearScreen
+    restore
+
+    output title5
+    output CRLF
+
+    save
+    mov ah, 25h
+    mov al, 09h
+    push ax
+    call repeat
+    add sp, 2h
+    restore
+    output CRLF
+
+    output infoMsg
+
+    save
+    mov ah, 25h
+    mov al, 09h
+    push ax
+    call repeat
+    add sp, 2h
+    restore
+    output CRLF
+    output CRLF
+
+    anyKey
+
+    leaveret
+info endp
+
 numond proc
     setup
     ; allocate 2 bytes for getNumInput return value
-    sub sp, 2
+    sub sp, 2h
 
 .NUM_START:
     save
@@ -207,7 +268,7 @@ numond proc
     push ax
     call getNumInput
     mov [bp-02h], ax
-    add sp, 4
+    add sp, 4h
     restore
     cmp word ptr [bp-02h], 00h
     je .NUM_INIT
@@ -251,7 +312,7 @@ numond proc
     add al, '0'
     push ax
     call printColor
-    add sp, 2
+    add sp, 2h
     restore
 
     lea si, back
@@ -328,7 +389,7 @@ numond endp
 design proc
     setup
     ; allocate 2 bytes for getNumInput return value
-    sub sp, 2
+    sub sp, 2h
 
 .DES_START:
     save
@@ -347,7 +408,7 @@ design proc
     push ax
     call getNumInput
     mov [bp-02h], ax
-    add sp, 4
+    add sp, 4h
     restore
     cmp word ptr [bp-02h], 00h
     je .DES_INIT
@@ -370,7 +431,7 @@ design proc
     push ax
     call getNumInput
     mov [bp-02h], ax
-    add sp, 4
+    add sp, 4h
     restore
     cmp word ptr [bp-02h], 00h
     je .DES_INIT2
@@ -417,7 +478,7 @@ design proc
     mov al, ' '
     push ax
     call repeat
-    add sp, 2
+    add sp, 2h
     restore
 
     save
@@ -425,7 +486,7 @@ design proc
     mov al, '*'
     push ax
     call repeat
-    add sp, 2
+    add sp, 2h
     restore
 
     ; print spaces between '*'
@@ -436,7 +497,7 @@ design proc
     mov al, ' '
     push ax
     call repeat
-    add sp, 2
+    add sp, 2h
     restore
 
     save
@@ -444,7 +505,7 @@ design proc
     mov al, '*'
     push ax
     call repeat
-    add sp, 2
+    add sp, 2h
     restore
 
     output CRLF
@@ -482,7 +543,7 @@ design proc
     mov al, [si]
     push ax
     call resetCursorRow
-    add sp, 2
+    add sp, 2h
     restore
 
 .DES_TMP2:
@@ -544,7 +605,7 @@ box proc
     mov al, dl
     push ax
     call printColor
-    add sp, 2
+    add sp, 2h
     restore
     output SPC
 
@@ -586,7 +647,7 @@ box proc
     mov al, dl
     push ax
     call printColor
-    add sp, 2
+    add sp, 2h
     restore
     output SPC
     jmp .BOX_REP
@@ -653,7 +714,7 @@ box endp
 triangle proc
     setup
     ; allocate 2 bytes for getNumInput return value
-    sub sp, 2
+    sub sp, 2h
 
 .TRI_START:
     save
@@ -672,7 +733,7 @@ triangle proc
     push ax
     call getNumInput
     mov [bp-02h], ax
-    add sp, 4
+    add sp, 4h
     restore
     cmp word ptr [bp-02h], 00h
     je .TRI_INIT
@@ -705,16 +766,17 @@ triangle proc
     mov al, '*'
     push ax
     call repeat
-    add sp, 2
+    add sp, 2h
     restore
 
     ; print spaces
     save
-    mov ah, ch
+    mov ah, 28h
+    sub ah, cl
     mov al, ' '
     push ax
     call repeat
-    add sp, 2
+    add sp, 2h
     restore
 
     ; print right-side triangle
@@ -724,7 +786,7 @@ triangle proc
     mov al, '*'
     push ax
     call repeat
-    add sp, 2
+    add sp, 2h
     restore
     
     ; increase left-side length
@@ -736,10 +798,11 @@ triangle proc
     jg .TRI_AST
 
     output CRLF
+    output CRLF
 
     lea si, [inputNum+02h]
-    mov bl, [si] ; right-side triangle num of digit
-    mov bh, '1' ; right-side triangle starting digit
+    mov bh, [si] ; right-side triangle num of digit
+    mov bl, '1' ; right-side triangle starting digit
     mov ch, 01h ; left-side triangle num of digit
     mov cl, '1' ; left-side triangle starting digit
 
@@ -753,36 +816,37 @@ triangle proc
     mov ah, ch
     push ax
     call printNum
-    add sp, 2
+    add sp, 2h
     restore
 
     save
     mov al, ' '
-    mov ah, bl
+    mov ah, 28h
+    sub ah, ch
     push ax
     call repeat
-    add sp, 2
+    add sp, 2h
     restore
     
     save
     ; set starting digit of right-side triangle
-    mov al, bh
+    mov al, bl
     ; print a sequence starting from digit `bh` with difference equal to +1
     ; and sequence length equal to `bl`
-    mov ah, bl
+    mov ah, bh
     push ax
     call printNum
-    add sp, 2
+    add sp, 2h
     restore
 
     ; increment left-side triangle num of digit to be printed
     inc ch
     ; increment right-side triangle starting digit by 1
-    inc bh
+    inc bl
     ; decrement right-side triangle num of digit to be printed
-    dec bl
+    dec bh
     output CRLF
-    cmp bl, 00h
+    cmp bh, 00h
     jg .TRI_NUM
 
     anyKey
@@ -883,7 +947,7 @@ repeat proc
     mov al, dl
     push ax
     call printColor
-    add sp, 2
+    add sp, 2h
     restore
     loop .REP
 
@@ -906,7 +970,7 @@ printNum proc
     mov al, dl
     push ax
     call printColor
-    add sp, 2
+    add sp, 2h
     restore
     inc dl
     loop .REPN
@@ -922,7 +986,7 @@ getNumInput proc
 
     setup
     ; allocate 2 bytes for verify return value
-    sub sp, 2
+    sub sp, 2h
 
     ; read input
     mov dx, [bp+06h]
@@ -939,7 +1003,7 @@ getNumInput proc
     push ax
     call verify
     mov [bp-02h], ax
-    add sp, 4
+    add sp, 4h
     restore
     mov ax, [bp-02h]
 
